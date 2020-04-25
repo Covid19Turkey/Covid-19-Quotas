@@ -1,0 +1,101 @@
+---
+title: "Covid-19 Moral and Social Psychology - Turkey, Quotas"
+author: "cerenay"
+date: "4/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+This document shows the age statistics in Turkey for 2019. Data are from TurkStat address based statistics. 
+
+
+```{r echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+library(foreign)
+library(ggpubr)
+census<-read.csv2("/Users/cerenay/Desktop/Covid-19/census_2.csv")
+library(reshape)
+census <- melt(census, id=c("City","Gender"))
+library(ggplot2)
+library(dplyr)
+library(hrbrthemes)
+levels(census$variable) <- sub(".", "-", levels(census$variable))
+census$value<-as.numeric(census$value)
+census %>%
+group_by(Gender) %>%
+mutate(Frac = as.numeric(value)/sum(value))
+census$Frac<-census$Frac
+census_full<-read.csv2("/Users/cerenay/Desktop/Covid-19/census_full_age.csv")
+
+
+```
+
+# Age Pyramid
+
+
+```{r echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+n1 <- ggplot(census_full, aes(x = variable, y = Numb, fill = Gender)) +
+geom_bar(subset = (census_full$Gender == "F" ), stat = "identity") +
+geom_bar(subset = (census_full$Gender == "M" ), stat = "identity") +
+scale_y_continuous(breaks = seq(-5000000, 5000000, 1000000),
+labels = paste0(as.character(c(5:0, 1:5)), "m")) +
+coord_flip() +
+scale_fill_brewer(palette = "Set1")+labs(x="Age Groups",y="Count")+
+theme(panel.background = element_rect(fill = "transparent",colour = NA), # or theme_blank()
+panel.grid.minor = element_blank(),
+panel.grid.major = element_blank(),
+plot.background = element_rect(fill = "transparent",colour = NA)
+)
+n1
+ggsave("pyramid_age.pdf")
+```
+
+## Age group
+
+The graph below shows the share of each age group in the supposed sample of adults between age 15 to 90+. 
+
+```{r echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+census_full$City<-NULL
+df_census<- census_full %>% 
+  group_by(variable) %>% 
+  summarise(sum_val= sum(value))
+df_census<-as.data.frame(df_census)
+df_census$fracs<- df_census$sum_val/sum(df_census$sum_val)
+df_census$fracs_rounded<-round(df_census$fracs ,digit=2)
+df_census$numb<-df_census$fracs*1000
+shares<-ggplot(df_census, aes(x=variable, y=fracs, label = fracs_rounded)) + geom_bar(stat = "identity") +geom_text(size = 5, position = position_stack(vjust = 0.9))+labs(x="Age Groups",y="Share")
+
+shares<-shares+theme(panel.background = element_rect(fill = "transparent",colour = NA), # or theme_blank()
+panel.grid.minor = element_blank(),
+panel.grid.major = element_blank(),
+plot.background = element_rect(fill = "transparent",colour = NA)
+)+ coord_flip()
+
+shares
+
+ggsave("shares.pdf")
+```
+
+## Gender
+
+
+
+```{r echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+dg_census<- census_full %>% 
+  group_by(Gender) %>% 
+  summarise(sum_val= sum(value))
+dg_census<-as.data.frame(dg_census)
+dg_census$fracs<- dg_census$sum_val/sum(dg_census$sum_val)
+dg_census$fracs_rounded<-round(dg_census$fracs ,digit=2)
+
+shares_g<-ggplot(dg_census, aes(x="", y=fracs, fill=Gender,label=fracs_rounded)) + geom_bar(width=1, stat = "identity") +geom_text(size = 5, position = position_stack(vjust = 0.9))+labs(x="Gender",y="Share")
+pie <- shares_g + coord_polar("y", start=0)
+pie+scale_fill_brewer(palette="Blues") + theme_minimal()
+ggsave('pie_gender.pdf')
+
+
+```
+
